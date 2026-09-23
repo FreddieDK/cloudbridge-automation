@@ -1,0 +1,14 @@
+---
+- name: Test sudo
+  hosts: linux
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check effective user
+      ansible.builtin.command: whoami
+      register: whoami
+
+    - name: Show result
+      ansible.builtin.debug:
+        var: whoami.stdout
