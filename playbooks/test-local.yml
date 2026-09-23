@@ -1,0 +1,8 @@
+---
+- name: Test Semaphore and Ansible
+  hosts: local
+  gather_facts: false
+
+  tasks:
+    - name: Test Ansible connection
+      ansible.builtin.ping:
