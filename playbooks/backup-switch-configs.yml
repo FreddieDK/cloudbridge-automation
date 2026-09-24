@@ -1,0 +1,39 @@
+---
+# Daglig backup af running-config fra DC01-switchene til DC01-VS-FILE01.
+# Resultat: \\172.20.10.15\Cloudbridge\IT\backup\switches\<MMDDÅÅÅÅ>\<hostname>.cfg
+# Inventory i Semaphore: inventory/network-switches.ini
+
+- name: Forbered dagens backup-mappe
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars: &backup_vars
+    # Mountpoint for \\172.20.10.15\Cloudbridge\IT\backup på Semaphore-VM'en
+    backup_mount: /mnt/netbackup
+    backup_root: /mnt/netbackup/switches
+  tasks:
+    - name: Tjek at filserver-sharet er mountet (så backup aldrig ender lokalt på VM'en)
+      ansible.builtin.command: "mountpoint -q {{ backup_mount }}"
+      changed_when: false
+
+    - name: Fastlæg dato for hele kørslen
+      ansible.builtin.set_fact:
+        backup_date: "{{ now(fmt='%m%d%Y') }}"
+
+    - name: Opret dagens mappe
+      ansible.builtin.file:
+        path: "{{ backup_root }}/{{ backup_date }}"
+        state: directory
+        mode: "0750"
+
+- name: Hent running-config fra switches
+  hosts: switches
+  gather_facts: false
+  vars: *backup_vars
+  tasks:
+    - name: Gem running-config som <hostname>.cfg
+      cisco.ios.ios_config:
+        backup: true
+        backup_options:
+          dir_path: "{{ backup_root }}/{{ hostvars['localhost'].backup_date }}"
+          filename: "{{ inventory_hostname }}.cfg"
