@@ -18,7 +18,7 @@
 
     - name: Set the date for the entire run
       ansible.builtin.set_fact:
-        backup_date: "{{ now(fmt='%m%d%Y') }}"
+        backup_date: "{{ now(fmt='%d%m%Y') }}"
 
     - name: Create today's folder
       ansible.builtin.file:
