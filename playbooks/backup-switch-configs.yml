@@ -1,37 +1,37 @@
 ---
-# Daglig backup af running-config fra DC01-switchene til DC01-VS-FILE01.
-# Resultat: \\172.20.10.15\Cloudbridge\IT\backup\switches\<MMDDÅÅÅÅ>\<hostname>.cfg
-# Inventory i Semaphore: inventory/network-switches.ini
+# Daily backup of running-config from the DC01 switches to DC01-VS-FILE01.
+# Result: \\172.20.10.15\Cloudbridge\IT\backup\switches\<MMDDYYYY>\<hostname>.cfg
+# Inventory in Semaphore: inventory/Cisco Swithces.ini
 
-- name: Forbered dagens backup-mappe
+- name: Prepare today's backup folder
   hosts: localhost
   connection: local
   gather_facts: false
   vars: &backup_vars
-    # Mountpoint for \\172.20.10.15\Cloudbridge\IT\backup på Semaphore-VM'en
+    # Mountpoint for \\172.20.10.15\Cloudbridge\IT\backup on the Semaphore VM
     backup_mount: /mnt/netbackup
     backup_root: /mnt/netbackup/switches
   tasks:
-    - name: Tjek at filserver-sharet er mountet (så backup aldrig ender lokalt på VM'en)
+    - name: Verify that the file server share is mounted (so backups never end up locally on the VM)
       ansible.builtin.command: "mountpoint -q {{ backup_mount }}"
       changed_when: false
 
-    - name: Fastlæg dato for hele kørslen
+    - name: Set the date for the entire run
       ansible.builtin.set_fact:
         backup_date: "{{ now(fmt='%m%d%Y') }}"
 
-    - name: Opret dagens mappe
+    - name: Create today's folder
       ansible.builtin.file:
         path: "{{ backup_root }}/{{ backup_date }}"
         state: directory
         mode: "0750"
 
-- name: Hent running-config fra switches
+- name: Retrieve running-config from switches
   hosts: switches
   gather_facts: false
   vars: *backup_vars
   tasks:
-    - name: Gem running-config som <hostname>.cfg
+    - name: Save running-config as <hostname>.cfg
       cisco.ios.ios_config:
         backup: true
         backup_options:
