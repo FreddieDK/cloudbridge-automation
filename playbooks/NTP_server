@@ -1,0 +1,11 @@
+---
+- name: Set public NTP server on switches
+  hosts: switches
+  gather_facts: false
+  tasks:
+    - name: Configure NTP server
+      cisco.ios.ios_config:
+        lines:
+          - ntp server 162.159.200.1
+          - ntp server 162.159.200.123
+        save_when: modified
