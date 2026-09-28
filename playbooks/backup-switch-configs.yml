@@ -1,6 +1,6 @@
 ---
 # Daily backup of running-config from the DC01 switches to DC01-VS-FILE01.
-# Result: \\172.20.10.15\Cloudbridge\IT\backup\switches\<MMDDYYYY>\<hostname>.cfg
+# Result: \\172.20.10.15\Cloudbridge\IT\backup\switches\<DDMMYYYY>\<hostname>.cfg
 # Inventory in Semaphore: inventory/Cisco Swithces.ini
 
 - name: Prepare today's backup folder
