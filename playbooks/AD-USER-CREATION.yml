@@ -1,0 +1,78 @@
+---
+# Creates one AD user in the department OU and adds it to the department's GG group.
+# Access to shares, servers etc. follows from the GG group (AGDLP) - nothing is assigned per user.
+#
+# Variables from the Semaphore survey: first_name, last_name, department
+# new_user_password comes from a secret in the Semaphore Environment - never from this repo.
+# Inventory in Semaphore: inventory/windows.ini
+
+- name: Create AD user
+  hosts: domain_controllers
+  gather_facts: false
+  vars:
+    domain_dn: "DC=cloudbridge,DC=internal"
+    upn_suffix: "cloudbridge.internal"
+    # Department OU name -> department group
+    departments:
+      Administrationen: GG-ADMINISTRATION
+      Direktionen: GG-DIREKTION
+      HR: GG-HR
+      IT: GG-IT
+    # Login = first name, lowercase, without spaces and Danish letters
+    sam_account_name: >-
+      {{ first_name | trim | lower
+         | replace('æ', 'ae') | replace('ø', 'oe') | replace('å', 'aa')
+         | replace(' ', '') }}
+    display_name: "{{ first_name | trim }} {{ last_name | trim }}"
+    user_ou: "OU={{ department }},OU=$Departments,OU=CloudBridge,{{ domain_dn }}"
+
+  tasks:
+    - name: Validate input
+      ansible.builtin.assert:
+        that:
+          - first_name | default('') | trim | length > 0
+          - last_name | default('') | trim | length > 0
+          - department | default('') in departments
+          - new_user_password is defined
+        fail_msg: >-
+          first_name and last_name are required, department must be one of
+          {{ departments.keys() | list | join(', ') }}, and new_user_password
+          must be set in the Semaphore Environment.
+        quiet: true
+
+    - name: Check whether the login name is already taken
+      microsoft.ad.object_info:
+        ldap_filter: "(sAMAccountName={{ sam_account_name }})"
+      register: existing
+
+    # Without this check the next task would modify an existing user with the same login
+    - name: Stop if the login name already exists
+      ansible.builtin.fail:
+        msg: >-
+          The login name '{{ sam_account_name }}' already exists:
+          {{ existing.objects[0].DistinguishedName }}
+      when: existing.objects | length > 0
+
+    - name: Create user and add to department group
+      microsoft.ad.user:
+        name: "{{ display_name }}"
+        path: "{{ user_ou }}"
+        sam_account_name: "{{ sam_account_name }}"
+        upn: "{{ sam_account_name }}@{{ upn_suffix }}"
+        firstname: "{{ first_name | trim }}"
+        surname: "{{ last_name | trim }}"
+        display_name: "{{ display_name }}"
+        password: "{{ new_user_password }}"
+        update_password: on_create
+        password_expired: false
+        enabled: true
+        groups:
+          add:
+            - "{{ departments[department] }}"
+        state: present
+
+    - name: Result
+      ansible.builtin.debug:
+        msg: >-
+          Created {{ display_name }} (login: {{ sam_account_name }}) in
+          {{ department }}, member of {{ departments[department] }}.
