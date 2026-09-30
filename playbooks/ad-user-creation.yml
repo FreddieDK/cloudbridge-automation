@@ -15,9 +15,7 @@
       HR: GG-HR
       IT: GG-IT
     sam_account_name: >-
-      {{ first_name | trim | lower
-         | replace('æ', 'ae') | replace('ø', 'oe') | replace('å', 'aa')
-         | replace(' ', '') }}
+      {{ first_name | trim | lower | replace(' ', '') }}
     display_name: "{{ first_name | trim }} {{ last_name | trim }}"
     user_ou: "OU={{ department }},OU=$Departments,OU=CloudBridge,{{ domain_dn }}"
 
