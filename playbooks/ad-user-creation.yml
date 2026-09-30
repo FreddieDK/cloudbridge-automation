@@ -1,24 +1,19 @@
 ---
 # Creates one AD user in the department OU and adds it to the department's GG group.
-# Access to shares, servers etc. follows from the GG group (AGDLP) - nothing is assigned per user.
-#
 # Variables from the Semaphore survey: first_name, last_name, department
-# new_user_password comes from a secret in the Semaphore Environment - never from this repo.
+# new_user_password comes from a secret in the Semaphore Environment
 # Inventory in Semaphore: inventory/windows.ini
-
 - name: Create AD user
   hosts: domain_controllers
   gather_facts: false
   vars:
     domain_dn: "DC=cloudbridge,DC=internal"
     upn_suffix: "cloudbridge.internal"
-    # Department OU name -> department group
     departments:
       Administrationen: GG-ADMINISTRATION
       Direktionen: GG-DIREKTION
       HR: GG-HR
       IT: GG-IT
-    # Login = first name, lowercase, without spaces and Danish letters
     sam_account_name: >-
       {{ first_name | trim | lower
          | replace('æ', 'ae') | replace('ø', 'oe') | replace('å', 'aa')
@@ -44,8 +39,7 @@
       microsoft.ad.object_info:
         ldap_filter: "(sAMAccountName={{ sam_account_name }})"
       register: existing
-
-    # Without this check the next task would modify an existing user with the same login
+      
     - name: Stop if the login name already exists
       ansible.builtin.fail:
         msg: >-
